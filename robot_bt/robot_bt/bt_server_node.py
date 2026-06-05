@@ -1,5 +1,6 @@
 from collections import defaultdict
 import time
+import logging #new
 import py_trees
 from py_trees.trees import BehaviourTree
 from py_trees.blackboard import Client
@@ -9,6 +10,19 @@ import rclpy
 from rclpy.logging import get_logger
 from rclpy.node import Node
 from robot_bt.bootstrap import bootstrap_bt
+
+#new
+log = logging.getLogger("InteractionLogger")
+log.setLevel(logging.INFO)
+
+if not log.handlers:
+    file_handler = logging.FileHandler("interaction_log.txt")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    file_handler.setFormatter(formatter)
+    log.addHandler(file_handler)
 
 
 class BtServerNode(Node):
@@ -33,15 +47,32 @@ class BtServerNode(Node):
 
         try:
             self.get_logger().info(f"Trying to bootstrap {self._bt_name} BT")
+            #new
+            log.info(
+                f'BT_BOOTSTRAP_START source_component="bt" bt_name="{self._bt_name}"'
+            )
+
             bootstrap_fn = bootstrap_bt(self._bt_name)
             self.get_logger().info(f"{self._bt_name} has been bootstrapped")
             self.bt = BehaviourTree(root=bootstrap_fn(self))
             self.bt.root.attach_blackboard_client("Global")
             self.bt.setup()
 
+            #new
+            log.info(
+                f'BT_BOOTSTRAP_SUCCESS source_component="bt" bt_name="{self._bt_name}" '
+                f'bt_status="READY" system_state="idle" active_node="{self.bt.root.name}"'
+            )
+
         except Exception as e:
             self.get_logger().error(f"Unable to bootstrap BT -> {self._bt_name} \n {e}")
             self.bt = None
+
+            #new
+            log.info(
+                f'BT_BOOTSTRAP_FAILURE source_component="bt" bt_name="{self._bt_name}" '
+                f'bt_status="FAILURE" system_state="failed" failure_reason="{str(e)}"'
+            )
 
     def declare_params(self):
         self.declare_parameter("bt_name", self._bt_name)
@@ -68,26 +99,69 @@ class BtServerNode(Node):
                 self.get_logger().error(
                     "Behaviour Tree was not successfully bootstrapped. No BT to run! Trying again in 5 seconds..."
                 )
+
+                #new
+                log.info(
+                    f'BT_MISSING source_component="bt" bt_name="{self._bt_name}" '
+                    f'bt_status="FAILURE" system_state="failed" '
+                    f'failure_reason="BT was not successfully bootstrapped"'
+                )
+
                 time.sleep(5)
                 continue
 
             try:
                 self.bt.tick(post_tick_handler=self.print_tree)
+                #new
+                root_status = self.bt.root.status.name if self.bt.root.status else "UNKNOWN"
+
+                if root_status == "RUNNING":
+                    system_state = "running"
+                elif root_status == "SUCCESS":
+                    system_state = "success"
+                elif root_status == "FAILURE":
+                    system_state = "failed"
+                else:
+                    system_state = "idle"
+
+                log.info(
+                    f'BT_STATUS source_component="bt" bt_name="{self._bt_name}" '
+                    f'bt_status="{root_status}" system_state="{system_state}" '
+                    f'active_node="{self.bt.root.name}"'
+                )
+
             except Exception as e:
                 self.get_logger().error(
                     f"A problem occured while ticking BT. Root Cause: {e}"
+                )
+
+                #new
+                log.info(
+                    f'BT_ERROR source_component="bt" bt_name="{self._bt_name}" '
+                    f'bt_status="FAILURE" system_state="failed" failure_reason="{str(e)}"'
                 )
                 break
             if (
                 self.bt.root.status == py_trees.common.Status.FAILURE
                 and self._stop_on_failure
             ):
+
+            #new 
+                log.info(
+                    f'BT_STOPPED_ON_FAILURE source_component="bt" bt_name="{self._bt_name}" '
+                    f'bt_status="FAILURE" system_state="failed" active_node="{self.bt.root.name}"'
+                )
                 break
             rclpy.spin_once(self, timeout_sec=1)
             time.sleep(1 / self._bt_tick_freq)
 
         if self.bt:
             self.get_logger().info("Shutting down BT")
+            #new
+            log.info(
+                f'BT_SHUTDOWN source_component="bt" bt_name="{self._bt_name}" '
+                f'bt_status="STOPPED" system_state="idle"'
+            )
             self.bt.shutdown()
 
 

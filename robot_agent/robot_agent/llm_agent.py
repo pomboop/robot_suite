@@ -109,6 +109,9 @@ class Agent(Node):
             + f"\n--- ROSA Session Started at {start_time_str} ---"
         )
 
+        #NEW!!!!
+        log.info(f"SESSION_START: {start_time_str}")
+
         self._init_parameters()
         self._init_publishers()
         self._init_subscriptions()
@@ -263,6 +266,9 @@ class Agent(Node):
         self.user_query = msg.data
         self.chat_history.add_user_message(self.user_query)
 
+        #NEW!!!!
+        log.info(f"USER_QUERY_RECEIVED: {self.user_query}")
+
         if self.rosa is not None:
             asyncio.run_coroutine_threadsafe(self.send_query(msg.data), self.event_loop)
 
@@ -375,14 +381,26 @@ class Agent(Node):
                 response = response + event["content"]
             elif event["type"] == "tool_start":
                 print(Fore.YELLOW + f"\n🛠️ Starting tool: {event['name']}")
+
+                #NEW!!!!
+                log.info(f"TOOL_START: {event['name']}")
+
             elif event["type"] == "tool_end":
                 print(Fore.YELLOW + f"\n✅ Finished tool: {event['name']}")
+
+                #NEW!!!!
+                log.info(f"TOOL_END: {event['name']}")
+
                 await asyncio.sleep(1)
             elif event["type"] == "final":
                 pass
                 # print(Fore.CYAN + Style.BRIGHT + f"\n📤 Final output: {event['content']}")
             elif event["type"] == "error":
                 print(Fore.RED + f"\n❌ Error: {event['content']}")
+
+                #NEW!!!!
+                log.error(f"ERROR: {event['content']}")
+
 
         return response
 
@@ -400,6 +418,9 @@ class Agent(Node):
         # Log the prompt to the file
         log.info(f"USER_PROMPT: {query}")
 
+        #NEW!!!!
+        log.info(f"COMMAND_PROCESSING_START: {query}")
+
         # Start processing the command
         processing_time_str = time.strftime("%H:%M:%S")
         print(Fore.CYAN + f"[{processing_time_str}] Processing command...")
@@ -408,6 +429,9 @@ class Agent(Node):
             if self.rosa is not None:
                 response = await self.get_response(query)
                 self.chat_history.add_ai_message(response)
+
+                #NEW!!!!
+                log.info(f"FINAL_RESPONSE: {response}")
 
                 responseMsg = String()
                 responseMsg.data = response
@@ -423,6 +447,9 @@ class Agent(Node):
             self.get_logger().error(
                 f"An exception occured when sending the user's query to the ROSA : {e}"
             )
+
+            #NEW!!!!
+            log.error(f"SEND_QUERY_ERROR: {e}")
 
     ##################################### LLM Agent tools ########################################################################
     # These are tools for handling which robot the agent is impersonating
