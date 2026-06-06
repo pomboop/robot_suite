@@ -223,12 +223,17 @@ class TelloController(Controller):
         if msg.percentage is not None:
             self.battery_state = msg.percentage
 
+            #New
+            log.info(f"BATTERY_UPDATE: robot={self.robot_name}, percent={self.battery_state:.1f}")
+
             if 10.0 <= self.battery_state < 20.0 and not self.warned_low_battery:
                 self.warned_low_battery = True
                 self.get_logger().warn(
                     f"Battery for {self.robot_name} is at {self.battery_state:.1f}%. "
                     "Consider landing soon."
                 )
+                #New 
+                log.warning(f"BATTERY_WARNING: robot={self.robot_name}, percent={self.battery_state:.1f}, reason=low battery")
             elif self.battery_state >= 20.0:
                 self.warned_low_battery = False
 
