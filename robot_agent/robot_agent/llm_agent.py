@@ -109,7 +109,7 @@ class Agent(Node):
             + f"\n--- ROSA Session Started at {start_time_str} ---"
         )
 
-        #NEW!!!!
+        #Dashboard log: start of a new ROSA session
         log.info(f"SESSION_START: {start_time_str}")
 
         self._init_parameters()
@@ -266,7 +266,7 @@ class Agent(Node):
         self.user_query = msg.data
         self.chat_history.add_user_message(self.user_query)
 
-        #NEW!!!!
+        # Dashboard log: user query received from ROS topic
         log.info(f"USER_QUERY_RECEIVED: {self.user_query}")
 
         if self.rosa is not None:
@@ -382,14 +382,14 @@ class Agent(Node):
             elif event["type"] == "tool_start":
                 print(Fore.YELLOW + f"\n🛠️ Starting tool: {event['name']}")
 
-                #NEW!!!!
-                log.info(f"TOOL_START: {event['name']}")
+                # Dashboard log: gives which tool the LLM selected to execute
+                log.info(f"TOOL_START: {event['name']} source_component=agent")
 
             elif event["type"] == "tool_end":
                 print(Fore.YELLOW + f"\n✅ Finished tool: {event['name']}")
 
-                #NEW!!!!
-                log.info(f"TOOL_END: {event['name']}")
+                # Dashboard log: tool finished executing
+                log.info(f"TOOL_END: {event['name']} source_component=agent")
 
                 await asyncio.sleep(1)
             elif event["type"] == "final":
@@ -398,8 +398,8 @@ class Agent(Node):
             elif event["type"] == "error":
                 print(Fore.RED + f"\n❌ Error: {event['content']}")
 
-                #NEW!!!!
-                log.error(f"ERROR: {event['content']}")
+                # Dashboard log: errors from the LLM/agent layer
+                log.error(f"ERROR: {event['content']} source_component=agent")
 
 
         return response
@@ -418,7 +418,7 @@ class Agent(Node):
         # Log the prompt to the file
         log.info(f"USER_PROMPT: {query}")
 
-        #NEW!!!!
+        # Dashboard log: the agent has started processing the user command
         log.info(f"COMMAND_PROCESSING_START: {query}")
 
         # Start processing the command
@@ -430,8 +430,8 @@ class Agent(Node):
                 response = await self.get_response(query)
                 self.chat_history.add_ai_message(response)
 
-                #NEW!!!!
-                log.info(f"FINAL_RESPONSE: {response}")
+                # Dashboard log: final LLM response shown to the user
+                log.info(f"FINAL_RESPONSE: {response} source_component=agent")
 
                 responseMsg = String()
                 responseMsg.data = response
@@ -448,7 +448,7 @@ class Agent(Node):
                 f"An exception occured when sending the user's query to the ROSA : {e}"
             )
 
-            #NEW!!!!
+            # Dashboard log: captures errors that occur when sending the query to ROSA
             log.error(f"SEND_QUERY_ERROR: {e}")
 
     ##################################### LLM Agent tools ########################################################################

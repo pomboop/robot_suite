@@ -223,7 +223,7 @@ class TelloController(Controller):
         if msg.percentage is not None:
             self.battery_state = msg.percentage
 
-            #New
+            # Dashboard log: battery level every time it updates from the drone
             log.info(f"BATTERY_UPDATE: robot={self.robot_name}, percent={self.battery_state:.1f}")
 
             if 10.0 <= self.battery_state < 20.0 and not self.warned_low_battery:
@@ -232,7 +232,7 @@ class TelloController(Controller):
                     f"Battery for {self.robot_name} is at {self.battery_state:.1f}%. "
                     "Consider landing soon."
                 )
-                #New 
+                # Dashboard log: warns when battery drops below 20%, triggers low battery alert
                 log.warning(f"BATTERY_WARNING: robot={self.robot_name}, percent={self.battery_state:.1f}, reason=low battery")
             elif self.battery_state >= 20.0:
                 self.warned_low_battery = False
